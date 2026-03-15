@@ -184,7 +184,7 @@ class Battle:
         crit_stage = 1 if move.effect.crits_always else 0
         if attacker.held_item == "Scope Lens":
             crit_stage += 1
-        crit_thresholds = [24, 8, 2, 1]
+        crit_thresholds = [1, 8, 2, 24]
         threshold = crit_thresholds[min(crit_stage, 3)]
         is_crit = random.randint(1, 24) <= threshold
 
