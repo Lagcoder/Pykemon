@@ -33,6 +33,9 @@ from .world.pokemon_center import PokemonCenter
 from .world.poke_mart import PokeMart
 from .world.gym import GymBadgeSystem
 from .world.fossils import FossilLab
+from .story.events import StoryFlag, GameState
+from .story.rival import build_rival, RIVAL_NAME
+from .story.locations import LOCATIONS, Location, LocationService, STORY_PATH
 
 __version__ = "1.0.0"
 __all__ = [
@@ -53,4 +56,7 @@ __all__ = [
     "PokeMart",
     "GymBadgeSystem",
     "FossilLab",
+    "StoryFlag", "GameState",
+    "build_rival", "RIVAL_NAME",
+    "LOCATIONS", "Location", "LocationService", "STORY_PATH",
 ]

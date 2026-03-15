@@ -8,17 +8,20 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ..core.trainer import Trainer
 
-from ..core.trainer import GYMS, GymData, build_gym_leader, build_elite_four_member, ELITE_FOUR
+from ..core.trainer import GYMS, GymData, build_gym_leader, build_gym_trainers, build_elite_four_member, ELITE_FOUR
 
 
 class GymChallenge:
     """
     Represents a single Gym challenge attempt.
+    Tracks whether pre-leader trainers have been defeated.
     """
 
     def __init__(self, gym: GymData):
         self.gym = gym
         self.leader = build_gym_leader(gym)
+        # Gym trainers are rebuilt fresh each challenge
+        self._gym_trainers: list = []
 
     def can_challenge(self, trainer: "Trainer") -> bool:
         """Return True if the player has enough badges to challenge this gym."""
@@ -30,8 +33,19 @@ class GymChallenge:
             f"Come back when you have {self.gym.required_badges} badge(s)."
         )
 
+    def get_gym_trainers(self) -> list:
+        """Return (or lazily build) the list of in-gym NPC trainers."""
+        if not self._gym_trainers:
+            self._gym_trainers = build_gym_trainers(self.gym)
+        return self._gym_trainers
+
+    def reset_gym_trainers(self) -> None:
+        """Rebuild gym trainers for a fresh challenge."""
+        self._gym_trainers = build_gym_trainers(self.gym)
+        self.leader = build_gym_leader(self.gym)
+
     def award_badge(self, trainer: "Trainer") -> list[str]:
-        """Award the badge to the player and return messages."""
+        """Award the badge and TM to the player and return messages."""
         badge = self.gym.badge_name
         msgs = []
         if trainer.has_badge(badge):
@@ -40,12 +54,23 @@ class GymChallenge:
             trainer.award_badge(badge)
             msgs.append(f"{self.gym.leader_name}: You've proven your worth! Take the {badge}!")
             msgs.append(f"You received the {badge}!")
+            # Award TM
+            if self.gym.tm_reward:
+                tm_name = f"TM{self.gym.tm_reward:02d}"
+                try:
+                    trainer.bag.add_item(tm_name)
+                    from ..data.moves import TM_MOVES
+                    move = TM_MOVES.get(self.gym.tm_reward)
+                    move_name = move.name if move else tm_name
+                    msgs.append(f"{self.gym.leader_name} also gave you {tm_name} ({move_name})!")
+                except ValueError:
+                    pass
             # Badge stat boosts (Gen I style)
             msgs.extend(self._badge_effects(badge, trainer))
         return msgs
 
     def _badge_effects(self, badge: str, trainer: "Trainer") -> list[str]:
-        """Return flavour messages for badge effects (stat boosts for owned Pokémon)."""
+        """Return flavour messages for badge effects."""
         effects = {
             "Boulder Badge": "Pokémon up to level 20 will obey you.",
             "Cascade Badge": "Pokémon up to level 30 will obey you.",
@@ -58,6 +83,23 @@ class GymChallenge:
         }
         msg = effects.get(badge, "")
         return [msg] if msg else []
+
+    def gym_header(self) -> str:
+        """Return the header/intro text shown when entering the gym."""
+        lines = [
+            "═" * 50,
+            f"  ★  {self.gym.city} Gym  ★",
+            f"  Leader: {self.gym.leader_name}  |  Type: {self.gym.specialty_type}",
+        ]
+        if self.gym.puzzle_description:
+            lines.append("")
+            for ln in self.gym.puzzle_description.splitlines():
+                lines.append(f"  {ln}")
+        if self.gym.tip:
+            lines.append("")
+            lines.append(f"  Tip: {self.gym.tip}")
+        lines.append("═" * 50)
+        return "\n".join(lines)
 
 
 class PokemonLeague:
@@ -90,7 +132,6 @@ class PokemonLeague:
     def reset(self) -> None:
         """Reset to the beginning of the Elite Four."""
         self.current_member_idx = 0
-        # Re-build all parties at full health
         self.members = [build_elite_four_member(m) for m in ELITE_FOUR]
 
     @property
@@ -104,6 +145,33 @@ class PokemonLeague:
             "You are entered into the Hall of Fame!\n"
             "Your name will be remembered forever!"
         )
+
+    def elite_four_intro(self, member_idx: int) -> str:
+        intros = {
+            "Lorelei": (
+                "Lorelei: No one can make it through me using normal-type moves alone!\n"
+                "Your Pokémon will be at my mercy — for I specialize in Ice types!"
+            ),
+            "Bruno": (
+                "Bruno: We will grind you down with power!  My Fighting-type\n"
+                "Pokémon are the mightiest in all the land!"
+            ),
+            "Agatha": (
+                "Agatha: Hehehe!  Now I will show you the terrifying power\n"
+                "of the Ghost type!  Don't say I didn't warn you…"
+            ),
+            "Lance": (
+                "Lance: I am Lance, the Dragon Master!  My Dragon Pokémon\n"
+                "know no equal.  Challenger — prepare to be destroyed!"
+            ),
+        }
+        if 0 <= member_idx < len(self.members):
+            member_name = self.members[member_idx].name
+            return intros.get(
+                member_name,
+                f"{member_name}: So you've made it this far.  Impressive.  Let's battle!"
+            )
+        return "Challenger — prepare yourself!"
 
 
 class GymBadgeSystem:
@@ -139,8 +207,9 @@ class GymBadgeSystem:
         lines = ["=== GYM ROSTER ==="]
         for gym in GYMS:
             lines.append(
-                f"  Gym {gym.number}: {gym.city:<20} "
+                f"  Gym {gym.number}: {gym.city:<22} "
                 f"Leader: {gym.leader_name:<12} "
                 f"Type: {gym.specialty_type}"
             )
         return "\n".join(lines)
+
