@@ -620,11 +620,15 @@ class Battle:
     # ── Escape ────────────────────────────────────────────────────────────────
 
     def _attempt_run(self, player_mon: "Pokemon", wild_mon: "Pokemon") -> bool:
-        speed_diff = player_mon.get_stat("spe") - wild_mon.get_stat("spe")
-        if speed_diff >= 0:
+        # Chance starts at -0.1 on turn 1 and increases by 0.1 each turn.
+        # Turn 1: -0.1 (impossible), turn 2: 0.0 (impossible), turn 3: 0.1, …
+        # turn 12: 1.0 (guaranteed).
+        chance = -0.1 + 0.1 * (self.turn - 1)
+        if chance <= 0:
+            return False
+        if chance >= 1.0:
             return True
-        escape_odds = int(((player_mon.get_stat("spe") * 128) // wild_mon.get_stat("spe") + 30 * self.turn) % 256)
-        return random.randint(0, 255) < escape_odds
+        return random.random() < chance
 
     # ── Experience ───────────────────────────────────────────────────────────
 
