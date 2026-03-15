@@ -42,7 +42,7 @@ def prompt(msg: str = "> ") -> str:
 def press_enter(msg: str = "Press ENTER to continue...") -> None:
     prompt(msg)
 
-def pause(seconds: float = 0.6) -> None:
+def pause(seconds: float = 1.2) -> None:
     """Short automatic delay so the player can read messages without pressing ENTER."""
     time.sleep(seconds)
 
