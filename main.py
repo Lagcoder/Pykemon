@@ -523,6 +523,23 @@ def _trigger_story_events(gs, loc, center, mart, gym_system):
             if rival_battle(gs, 4, center):
                 gs.set_flag(StoryFlag.BEAT_RIVAL_VICTORY_ROAD)
             gs.set_flag(flag)
+        elif flag == "MOLTRES_ENCOUNTERED":
+            say(f"\n{narrative}", player.name)
+            press_enter()
+            moltres = create_pokemon("Moltres", 50, is_wild=True)
+            wild_t = Trainer("Wild", party=[moltres])
+            result = run_battle_loop(Battle(player, wild_t, is_wild=True), player)
+            if result == BattleResult.CATCH:
+                print("  You caught the legendary MOLTRES!")
+            gs.set_flag(StoryFlag.MOLTRES_ENCOUNTERED)
+            gs.set_flag(flag)
+        elif flag == "BILL_RESCUED":
+            say(f"\n{narrative}", player.name)
+            press_enter()
+            player.bag.add_item("SS Ticket", 1)
+            print("  You received the SS Ticket!")
+            gs.set_flag(StoryFlag.BILL_RESCUED)
+            gs.set_flag(flag)
         elif flag == "BEAT_CHAMPION":
             gs.set_flag(flag)
         elif flag == "POWER_PLANT_VISITED":
@@ -619,6 +636,80 @@ def run_pokemon_league(gs: GameState, center: PokemonCenter,
 
 # ── Location explore menu ─────────────────────────────────────────────────────
 
+def _fishing_encounter(gs: GameState, center: PokemonCenter, rod: str) -> None:
+    """Fish for a Pokémon using the named rod."""
+    import random
+    loc = LOCATIONS.get(gs.current_location)
+    if not loc or not loc.fish_encounters or rod not in loc.fish_encounters:
+        print(f"  There's nowhere to fish here with the {rod}.")
+        press_enter()
+        return
+    pool = loc.fish_encounters[rod]
+    if random.random() < 0.3:           # 30 % chance of "nothing biting"
+        print("  …  Nothing seems to be biting right now.")
+        press_enter()
+        return
+    species, mn, mx = random.choice(pool)
+    lvl = random.randint(mn, mx)
+    print(f"  Oh!  Something's on the hook!  It's a wild {species}! (Lv.{lvl})")
+    press_enter()
+    mon = create_pokemon(species, lvl, is_wild=True)
+    from pykemon.core.trainer import Trainer as _Trainer
+    wild_t = _Trainer("Wild", party=[mon])
+    run_battle_loop(Battle(gs.player, wild_t, is_wild=True), gs.player)
+    if gs.player.pokedex:
+        gs.player.pokedex.see(species)
+
+
+def _safari_encounter(gs: GameState) -> None:
+    """Simple Safari Zone encounter — throw a Safari Ball or run."""
+    import random
+    loc = LOCATIONS.get(gs.current_location)
+    pool = loc.wild_encounters if loc else []
+    if not pool:
+        print("  No wild Pokémon appear in this area.")
+        press_enter()
+        return
+    species, mn, mx = random.choice(pool)
+    lvl = random.randint(mn, mx)
+    clear()
+    print_divider("─")
+    print(f"  A wild {species} (Lv.{lvl}) appeared in the Safari Zone!")
+    print_divider("─")
+    while True:
+        idx = choose_from_list(
+            ["Throw Safari Ball", "Throw Bait", "Throw Rock", "Run"],
+            "What will you do?",
+        )
+        if idx == 3 or idx < 0:
+            print("  You ran away safely!")
+            break
+        elif idx == 0:
+            # Catch chance: base 50 % + slight level penalty
+            chance = max(0.15, 0.55 - lvl * 0.005)
+            if random.random() < chance:
+                print(f"  Gotcha!  {species} was caught!")
+                gs.player.pokedex.see(species)
+                gs.player.pokedex.catch(species)
+                mon = create_pokemon(species, lvl, trainer_name=gs.player.name)
+                if len(gs.player.party) < 6:
+                    gs.player.add_pokemon(mon)
+                    print(f"  {species} was added to your party!")
+                else:
+                    print(f"  {species} was sent to a PC Box.")
+                break
+            else:
+                print(f"  Oh no!  {species} broke free!")
+        elif idx == 1:
+            print(f"  You threw bait.  {species} is eating!")
+        elif idx == 2:
+            print(f"  You threw a rock.  {species} is enraged!")
+            if random.random() < 0.35:
+                print(f"  {species} fled!")
+                break
+    press_enter()
+
+
 def location_menu(gs: GameState, center: PokemonCenter, mart: PokeMart,
                   gym_system: GymBadgeSystem, fossil_lab: FossilLab,
                   ride_system: RideSystem) -> None:
@@ -634,7 +725,7 @@ def location_menu(gs: GameState, center: PokemonCenter, mart: PokeMart,
             print()
             print(loc.description)
         print()
-        actions = []
+        actions: list[tuple[str, str]] = []
         if loc and loc.wild_encounters:
             actions.append(("walk",    "Walk in tall grass (Wild Encounter)"))
         if loc and loc.trainers:
@@ -653,14 +744,20 @@ def location_menu(gs: GameState, center: PokemonCenter, mart: PokeMart,
             actions.append(("safari",  "Enter Safari Zone"))
         if loc and LocationService.SEAFOAM_CAVE in (loc.services or []):
             actions.append(("seafoam", "Explore Seafoam Islands cave"))
+        # Fishing — show rod options the player currently owns
+        if loc and loc.fish_encounters:
+            for rod in ("Old Rod", "Good Rod", "Super Rod"):
+                if rod in loc.fish_encounters and player.bag.item_count(rod) > 0:
+                    actions.append((f"fish_{rod}", f"Fish ({rod})"))
         actions += [
             ("party",   "View Party"),
             ("bag",     "Bag"),
             ("pokedex", "Pokédex"),
             ("ride",    "Ride Pokémon"),
             ("badges",  "Badge Case"),
+            ("save",    "Save Game"),
             ("travel",  "Travel to next location →"),
-            ("quit",    "Save & Quit"),
+            ("quit",    "Quit without saving"),
         ]
         idx = choose_from_list([a[1] for a in actions], "What will you do?")
         if idx < 0:
@@ -669,6 +766,13 @@ def location_menu(gs: GameState, center: PokemonCenter, mart: PokeMart,
         if key == "quit":
             print("\n  Thanks for playing Pykemon!  Goodbye!")
             sys.exit(0)
+        elif key == "save":
+            try:
+                gs.save()
+                print("  Game saved to pykemon_save.json!")
+            except Exception as exc:
+                print(f"  Save failed: {exc}")
+            press_enter()
         elif key == "walk":
             wild_encounter(gs, center)
         elif key == "trainers":
@@ -704,8 +808,13 @@ def location_menu(gs: GameState, center: PokemonCenter, mart: PokeMart,
                 for msg in msgs:
                     print(f"  {msg}")
                 press_enter()
-        elif key in ("safari", "seafoam"):
+        elif key == "safari":
+            _safari_encounter(gs)
+        elif key == "seafoam":
             wild_encounter(gs, center)
+        elif key.startswith("fish_"):
+            rod = key[5:]          # strip "fish_" prefix
+            _fishing_encounter(gs, center, rod)
         elif key == "party":
             print(player.party_status())
             idx2 = choose_from_list([f"{m.nickname} — summary" for m in player.party], "View:")

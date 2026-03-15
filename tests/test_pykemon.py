@@ -825,3 +825,248 @@ class TestTMsHMs:
         result = bag.teach_hm(3, mon)
         assert result
         assert any(m.data.name == "Surf" for m in mon.moves)
+
+
+# ── 21. Story System ──────────────────────────────────────────────────────────
+
+class TestStorySystem:
+    """Tests for StoryFlag, GameState, save/load, and GameState helpers."""
+
+    def test_story_flags_are_strings(self):
+        from pykemon.story.events import StoryFlag
+        flags = [v for k, v in vars(StoryFlag).items() if not k.startswith("_")]
+        assert all(isinstance(f, str) for f in flags)
+
+    def test_badge_to_flag_mapping(self):
+        from pykemon.story.events import BADGE_TO_FLAG, StoryFlag
+        assert BADGE_TO_FLAG["Boulder Badge"] == StoryFlag.BEAT_BROCK
+        assert BADGE_TO_FLAG["Earth Badge"]   == StoryFlag.BEAT_GIOVANNI
+        assert len(BADGE_TO_FLAG) == 8
+
+    def test_gamestate_set_has_flag(self):
+        from pykemon.story.events import GameState, StoryFlag
+        player = Trainer("Red", money=3000, is_player=True)
+        gs = GameState(player)
+        assert not gs.has_flag(StoryFlag.BEAT_BROCK)
+        gs.set_flag(StoryFlag.BEAT_BROCK)
+        assert gs.has_flag(StoryFlag.BEAT_BROCK)
+
+    def test_gamestate_travel_records_history(self):
+        from pykemon.story.events import GameState
+        player = Trainer("Red", money=3000, is_player=True)
+        gs = GameState(player, "Pallet Town")
+        gs.travel_to("Route 1")
+        gs.travel_to("Viridian City")
+        assert gs.current_location == "Viridian City"
+        assert "Pallet Town" in gs.seen_locations
+        assert "Route 1" in gs.seen_locations
+
+    def test_gamestate_status_line(self):
+        from pykemon.story.events import GameState
+        player = Trainer("Red", money=1234, is_player=True)
+        gs = GameState(player, "Pallet Town")
+        line = gs.status_line()
+        assert "Red" in line
+        assert "1,234" in line
+        assert "Pallet Town" in line
+
+    def test_gamestate_badge_count(self):
+        from pykemon.story.events import GameState
+        player = Trainer("Red", money=5000, is_player=True)
+        gs = GameState(player)
+        assert gs.badge_count() == 0
+        player.badges.append("Boulder Badge")
+        assert gs.badge_count() == 1
+
+    def test_gamestate_save_load(self, tmp_path):
+        """Round-trip: save → load should restore key state."""
+        import json
+        from pykemon.story.events import GameState, StoryFlag
+        save_file = str(tmp_path / "test_save.json")
+
+        player = Trainer("Ash", money=2500, is_player=True)
+        player.badges.append("Boulder Badge")
+        player.bag.add_item("Potion", 3)
+        player.add_pokemon(create_pokemon("Pikachu", 15, trainer_name="Ash"))
+
+        gs = GameState(player, "Cerulean City")
+        gs.set_flag(StoryFlag.BEAT_BROCK)
+        gs.set_flag(StoryFlag.OAK_PARCEL_DELIVERED)
+
+        gs.save(save_file)
+        # Verify file exists and is valid JSON
+        with open(save_file) as f:
+            raw = json.load(f)
+        assert raw["player_name"] == "Ash"
+        assert raw["money"] == 2500
+        assert "Boulder Badge" in raw["badges"]
+        assert StoryFlag.BEAT_BROCK in raw["flags"]
+
+        # Load and verify
+        gs2 = GameState.load(save_file)
+        assert gs2.player.name == "Ash"
+        assert gs2.player.money == 2500
+        assert "Boulder Badge" in gs2.player.badges
+        assert gs2.has_flag(StoryFlag.BEAT_BROCK)
+        assert gs2.has_flag(StoryFlag.OAK_PARCEL_DELIVERED)
+        assert gs2.current_location == "Cerulean City"
+        assert len(gs2.player.party) == 1
+        assert gs2.player.party[0].species == "Pikachu"
+
+    def test_gamestate_load_missing_file(self, tmp_path):
+        from pykemon.story.events import GameState
+        import pytest
+        with pytest.raises(FileNotFoundError):
+            GameState.load(str(tmp_path / "no_such_file.json"))
+
+
+# ── 22. Locations & Story Path ────────────────────────────────────────────────
+
+class TestLocations:
+    """Tests for the Kanto location data."""
+
+    def test_all_story_path_locations_exist(self):
+        from pykemon.story.locations import LOCATIONS, STORY_PATH
+        missing = [loc for loc in STORY_PATH if loc not in LOCATIONS]
+        assert missing == [], f"Missing: {missing}"
+
+    def test_story_path_starts_at_pallet(self):
+        from pykemon.story.locations import STORY_PATH
+        assert STORY_PATH[0] == "Pallet Town"
+
+    def test_story_path_ends_at_indigo_plateau(self):
+        from pykemon.story.locations import STORY_PATH
+        assert STORY_PATH[-1] == "Indigo Plateau"
+
+    def test_all_npc_trainer_classes_valid(self):
+        from pykemon.story.locations import LOCATIONS
+        from pykemon.core.trainer import TRAINER_CLASSES
+        bad = []
+        for loc_name, loc in LOCATIONS.items():
+            for spec in loc.trainers:
+                if spec.trainer_class not in TRAINER_CLASSES:
+                    bad.append(f"{loc_name}/{spec.name}")
+        assert bad == [], f"Invalid trainer classes: {bad}"
+
+    def test_all_npc_party_species_valid(self):
+        from pykemon.story.locations import LOCATIONS
+        bad = []
+        for loc_name, loc in LOCATIONS.items():
+            for spec in loc.trainers:
+                for species, lvl in spec.party:
+                    try:
+                        create_pokemon(species, lvl)
+                    except Exception as e:
+                        bad.append(f"{loc_name}/{spec.name}: {species}")
+        assert bad == [], f"Invalid species: {bad}"
+
+    def test_all_wild_encounter_species_valid(self):
+        from pykemon.story.locations import LOCATIONS
+        bad = []
+        for loc_name, loc in LOCATIONS.items():
+            for species, mn, mx in loc.wild_encounters:
+                try:
+                    create_pokemon(species, mn)
+                except Exception as e:
+                    bad.append(f"{loc_name}: {species}")
+        assert bad == [], f"Invalid wild species: {bad}"
+
+    def test_fish_encounters_valid(self):
+        from pykemon.story.locations import LOCATIONS
+        bad = []
+        for loc_name, loc in LOCATIONS.items():
+            for rod, pool in loc.fish_encounters.items():
+                assert rod in ("Old Rod", "Good Rod", "Super Rod"), f"Unknown rod: {rod}"
+                for species, mn, mx in pool:
+                    try:
+                        create_pokemon(species, mn)
+                    except Exception as e:
+                        bad.append(f"{loc_name}[{rod}]: {species}")
+        assert bad == [], f"Invalid fish species: {bad}"
+
+    def test_gym_locations_have_correct_gym_number(self):
+        from pykemon.story.locations import LOCATIONS
+        expected = {
+            "Pewter City": 1, "Cerulean City": 2, "Vermilion City": 3,
+            "Celadon City": 4, "Fuchsia City": 5, "Saffron City": 6,
+            "Cinnabar Island": 7, "Viridian City (Return)": 8,
+        }
+        for city, num in expected.items():
+            assert city in LOCATIONS, f"Missing location: {city}"
+            assert LOCATIONS[city].gym_number == num, (
+                f"{city} gym_number should be {num}"
+            )
+
+    def test_new_routes_present(self):
+        from pykemon.story.locations import LOCATIONS
+        for route in ("Route 5", "Route 7", "Route 8", "Route 22", "Route 24", "Route 25"):
+            assert route in LOCATIONS, f"Missing: {route}"
+
+    def test_pallet_has_fishing(self):
+        from pykemon.story.locations import LOCATIONS
+        loc = LOCATIONS["Pallet Town"]
+        assert loc.fish_encounters
+        assert "Old Rod" in loc.fish_encounters
+        assert "Magikarp" in [s for s, *_ in loc.fish_encounters["Old Rod"]]
+
+    def test_moltres_in_victory_road(self):
+        from pykemon.story.locations import LOCATIONS
+        loc = LOCATIONS["Victory Road"]
+        species_names = [s for s, *_ in loc.wild_encounters]
+        assert "Moltres" in species_names
+
+    def test_bill_rescued_flag_exists(self):
+        from pykemon.story.events import StoryFlag
+        assert hasattr(StoryFlag, "BILL_RESCUED")
+        assert StoryFlag.BILL_RESCUED == "BILL_RESCUED"
+
+    def test_moltres_flag_exists(self):
+        from pykemon.story.events import StoryFlag
+        assert hasattr(StoryFlag, "MOLTRES_ENCOUNTERED")
+        assert StoryFlag.MOLTRES_ENCOUNTERED == "MOLTRES_ENCOUNTERED"
+
+
+# ── 23. Rival ─────────────────────────────────────────────────────────────────
+
+class TestRival:
+    def test_build_rival_returns_trainer(self):
+        from pykemon.story.rival import build_rival, RIVAL_NAME
+        rival = build_rival(0)
+        assert rival is not None
+        assert rival.name == RIVAL_NAME
+        assert len(rival.party) >= 1
+
+    def test_rival_escalates_over_encounters(self):
+        from pykemon.story.rival import build_rival
+        r0 = build_rival(0)
+        r4 = build_rival(4)
+        max_lv0 = max(p.level for p in r0.party)
+        max_lv4 = max(p.level for p in r4.party)
+        assert max_lv4 > max_lv0
+
+    def test_rival_party_size_grows(self):
+        from pykemon.story.rival import build_rival
+        r0 = build_rival(0)
+        r5 = build_rival(5)
+        assert len(r5.party) >= len(r0.party)
+
+    def test_rival_all_encounters_valid(self):
+        from pykemon.story.rival import build_rival
+        for i in range(6):
+            rival = build_rival(i)
+            assert len(rival.party) >= 1
+            for mon in rival.party:
+                assert mon.level >= 1
+
+
+# ── 24. Bird Keeper trainer class ─────────────────────────────────────────────
+
+class TestBirdKeeperClass:
+    def test_bird_keeper_in_trainer_classes(self):
+        from pykemon.core.trainer import TRAINER_CLASSES
+        assert "Bird Keeper" in TRAINER_CLASSES
+
+    def test_bird_keeper_payout(self):
+        from pykemon.core.trainer import TRAINER_CLASSES
+        tc = TRAINER_CLASSES["Bird Keeper"]
+        assert tc.payout_multiplier > 0

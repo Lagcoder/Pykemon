@@ -54,6 +54,8 @@ class Location:
     trainers: list[NpcTrainerSpec] = field(default_factory=list)
     # Wild encounter table: list of (species, min_level, max_level)
     wild_encounters: list[tuple[str, int, int]] = field(default_factory=list)
+    # Fishing encounter table per rod: {"Old Rod": [...], "Good Rod": [...], "Super Rod": [...]}
+    fish_encounters: dict[str, list[tuple[str, int, int]]] = field(default_factory=dict)
     # Available services
     services: list[LocationService] = field(default_factory=list)
     # Gym number (1-8) if this location has a gym
@@ -106,6 +108,11 @@ _loc(Location(
             "Gary: {player}!  So you got a Pokémon too?  Let's see\n"
             "how good yours really is.  I challenge you!"
         ),
+    },
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 5, 10)],
+        "Good Rod":  [("Magikarp", 10, 20), ("Poliwag", 12, 18)],
+        "Super Rod": [("Poliwag", 20, 30), ("Poliwhirl", 25, 35), ("Gyarados", 15, 25)],
     },
     services=[LocationService.POKEMON_CENTER],
     unlocks="Route 1",
@@ -235,7 +242,7 @@ _loc(Location(
         "The distant peak of Mt. Moon looms on the horizon."
     ),
     trainers=[
-        _npc("Martin",  "Youngster", [("Spearow", 11), ("NidoranM", 11)],
+        _npc("Martin",  "Youngster", [("Spearow", 11), ("Nidoran♂", 11)],
              intro="Don't underestimate my birds!"),
         _npc("Rachel",  "Lass",      [("Rattata", 11), ("Rattata", 12)],
              intro="I bet my Rattata is faster than yours!"),
@@ -246,8 +253,8 @@ _loc(Location(
     ],
     wild_encounters=[
         ("Spearow",   8, 14),
-        ("NidoranM",  8, 13),
-        ("NidoranF",  8, 13),
+        ("Nidoran♂",  8, 13),
+        ("Nidoran♀",  8, 13),
         ("Jigglypuff",10, 14),
     ],
     unlocks="Mt. Moon",
@@ -321,6 +328,11 @@ _loc(Location(
              intro="Fighting types dominate!"),
     ],
     services=[LocationService.POKEMON_CENTER, LocationService.POKE_MART],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 15)],
+        "Good Rod":  [("Poliwag", 15, 22), ("Magikarp", 15, 20)],
+        "Super Rod": [("Poliwhirl", 25, 35), ("Goldeen", 22, 30), ("Seaking", 30, 38)],
+    },
     gym_number=2,
     unlocks="Route 6",
 ))
@@ -347,6 +359,11 @@ _loc(Location(
         ("Poliwag",  13, 18),
         ("Venonat",  13, 17),
     ],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 15)],
+        "Good Rod":  [("Poliwag", 14, 20), ("Magikarp", 14, 18)],
+        "Super Rod": [("Poliwhirl", 22, 32), ("Slowpoke", 20, 28)],
+    },
     unlocks="Vermilion City",
 ))
 
@@ -376,6 +393,11 @@ _loc(Location(
         ),
     },
     services=[LocationService.POKEMON_CENTER, LocationService.POKE_MART, LocationService.SS_ANNE],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 15)],
+        "Good Rod":  [("Tentacool", 15, 22), ("Horsea", 15, 22)],
+        "Super Rod": [("Shellder", 25, 35), ("Tentacruel", 30, 40), ("Gyarados", 20, 30)],
+    },
     gym_number=3,
     unlocks="Lavender Town",
 ))
@@ -468,6 +490,11 @@ _loc(Location(
         ),
     },
     services=[LocationService.POKEMON_CENTER, LocationService.POKE_MART, LocationService.SAFARI_ZONE],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 15, 20)],
+        "Good Rod":  [("Goldeen", 18, 26), ("Magikarp", 16, 22)],
+        "Super Rod": [("Seaking", 28, 38), ("Dratini", 10, 20), ("Gyarados", 20, 30)],
+    },
     gym_number=5,
     unlocks="Saffron City",
 ))
@@ -573,6 +600,11 @@ _loc(Location(
             "Gary: {player}!  This is it — our final battle before\n"
             "the Pokémon League.  Give it everything you've got!"
         ),
+        "MOLTRES_ENCOUNTERED": (
+            "Deep in the cave, a warm, orange glow flickers ahead…\n"
+            "MOLTRES — the legendary Fire bird — blocks your path!\n"
+            "Its scorching wings could melt the cave walls.  Be ready!"
+        ),
     },
     trainers=[
         _npc("Alan",   "Hiker",       [("Graveler", 46), ("Onix", 48), ("Graveler", 46)],
@@ -590,6 +622,7 @@ _loc(Location(
         ("Machoke",  40, 46),
         ("Onix",     38, 44),
         ("Ditto",    35, 42),
+        ("Moltres",  50, 50),
     ],
     unlocks="Indigo Plateau",
 ))
@@ -625,8 +658,8 @@ _loc(Location(
         "can be found here — but you can only use Safari Balls!"
     ),
     wild_encounters=[
-        ("NidoranF", 22, 28),
-        ("NidoranM", 22, 28),
+        ("Nidoran♀", 22, 28),
+        ("Nidoran♂", 22, 28),
         ("Exeggcute",24, 28),
         ("Chansey",  25, 30),
         ("Tauros",   25, 30),
@@ -971,12 +1004,227 @@ _loc(Location(
         ("Horsea",     25, 32),
         ("Seadra",     30, 38),
     ],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 20, 28)],
+        "Good Rod":  [("Horsea", 22, 32), ("Tentacool", 22, 30)],
+        "Super Rod": [("Seadra", 30, 40), ("Staryu", 28, 38), ("Gyarados", 25, 35)],
+    },
+))
+
+# ── Route 5 (Cerulean → Saffron Underground) ─────────────────────────────────
+
+_loc(Location(
+    name="Route 5",
+    description=(
+        "A broad road connecting Cerulean City southward to Saffron City.\n"
+        "The underground path beneath the road is a shortcut used by Trainers.\n"
+        "Psychic and Normal-type trainers frequent the grassy stretch."
+    ),
+    trainers=[
+        _npc("James",   "Jr. Trainer", [("Pidgeotto", 18), ("Rattata", 17)],
+             intro="I've been training here every day!",
+             win="You barely beat me — Saffron won't be easy!",
+             lose="Beaten on my own route!"),
+        _npc("Susan",   "Lass",        [("Clefairy", 18), ("Jigglypuff", 18)],
+             intro="My Clefairy is precious — and powerful!",
+             win="No one beats my Clefairy!",
+             lose="My Clefairy's Metronome… misfire."),
+        _npc("Huey",    "Camper",      [("Meowth", 19), ("Abra", 20)],
+             intro="I've got a Psychic-type AND a Normal-type!  Try me!",
+             win="Abra will teleport your victory away!",
+             lose="Abra used Teleport… on me."),
+    ],
+    wild_encounters=[
+        ("Pidgey",   13, 20),
+        ("Meowth",   14, 20),
+        ("Rattata",  13, 19),
+        ("Abra",     14, 20),
+    ],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 18)],
+        "Good Rod":  [("Poliwag", 16, 22)],
+        "Super Rod": [("Poliwhirl", 22, 30), ("Slowpoke", 20, 28)],
+    },
+))
+
+# ── Route 7 (Celadon ↔ Saffron) ──────────────────────────────────────────────
+
+_loc(Location(
+    name="Route 7",
+    description=(
+        "A short stretch between Celadon City and Saffron City.\n"
+        "The western end opens into Celadon's lush gardens.\n"
+        "Psychics often set up camp here, testing their powers."
+    ),
+    trainers=[
+        _npc("Hannah",  "Psychic",     [("Drowzee", 25), ("Hypno", 28)],
+             intro="My Hypno will make you forget you ever challenged me!",
+             win="You cannot resist the power of hypnosis!",
+             lose="My trance… broken!"),
+        _npc("Logan",   "Jr. Trainer", [("Raichu", 26), ("Electabuzz", 28)],
+             intro="Electric power surges through both my Pokémon!",
+             win="The voltage was too much for you!",
+             lose="Short-circuited by a stranger!"),
+    ],
+    wild_encounters=[
+        ("Pidgey",   22, 28),
+        ("Vulpix",   22, 28),
+        ("Growlithe",22, 28),
+        ("Drowzee",  22, 28),
+    ],
+))
+
+# ── Route 8 (Lavender ↔ Celadon Underground) ─────────────────────────────────
+
+_loc(Location(
+    name="Route 8",
+    description=(
+        "The road linking Lavender Town west toward Celadon City.\n"
+        "The underground path cuts through to Celadon's south gate.\n"
+        "Trainers here tend to be superstitious — blame the proximity to the Tower."
+    ),
+    trainers=[
+        _npc("Gina",    "Lass",        [("Ninetales", 27), ("Wigglytuff", 28)],
+             intro="My Ninetales has nine tails and nine tricks!",
+             win="You'll curse the day you challenged me!",
+             lose="My nine lives used up at once!"),
+        _npc("Cooper",  "Jr. Trainer", [("Kadabra", 28), ("Mr. Mime", 27)],
+             intro="Psychic-types see through all your strategies!",
+             win="Kadabra predicted your every move!",
+             lose="I did NOT see that coming!"),
+        _npc("Tina",    "Picnicker",   [("Clefable", 28), ("Chansey", 27)],
+             intro="My Normal-types are tougher than they look!",
+             win="Chansey's Softboiled is unstoppable!",
+             lose="Egg shell cracked…"),
+    ],
+    wild_encounters=[
+        ("Ekans",    22, 28),
+        ("Ninetales",25, 30),
+        ("Growlithe",22, 28),
+        ("Drowzee",  22, 28),
+    ],
+))
+
+# ── Route 22 (Pallet → Viridian south gate) ───────────────────────────────────
+
+_loc(Location(
+    name="Route 22",
+    description=(
+        "A grassy route west of Viridian City leading toward Victory Road.\n"
+        "Trainers with all 8 badges come here to warm up before the League.\n"
+        "The western gate is sealed until all 8 Gym badges are earned."
+    ),
+    trainers=[
+        _npc("Billy",   "Youngster",   [("Spearow", 4), ("Rattata", 4)],
+             intro="I'm training to be the best — starting here!",
+             win="Beat me?  Just a warm-up!",
+             lose="I'll train harder tonight!"),
+        _npc("Gary",    "Rival",       [("Eevee", 9), ("Pidgey", 8)],
+             intro="Gary: Hey {player}!  Out for a stroll?\n"
+                   "Well you can't pass without battling me first!",
+             win="Gary: Ha!  You need a LOT more practice, {player}.",
+             lose="Gary: What?!  No way… I'll get you next time!"),
+    ],
+    wild_encounters=[
+        ("Spearow", 2, 5),
+        ("Rattata",  2, 5),
+        ("Nidoran♂", 3, 5),
+        ("Nidoran♀", 3, 5),
+    ],
+))
+
+# ── Route 24 / Nugget Bridge (Cerulean north) ────────────────────────────────
+
+_loc(Location(
+    name="Route 24",
+    description=(
+        "The famous Nugget Bridge stretches north of Cerulean City.\n"
+        "Five trainers guard the bridge — defeat them all and earn a Nugget!\n"
+        "Team Rocket waits at the end with an offer you'll want to refuse."
+    ),
+    trainers=[
+        _npc("Josh",    "Bug Catcher", [("Caterpie", 14), ("Weedle", 14)],
+             intro="Beat all five of us and get a prize!",
+             win="Bug-types have you in their grip!",
+             lose="Squished!"),
+        _npc("Mikey",   "Youngster",   [("Spearow", 14), ("Mankey", 15)],
+             intro="I've been waiting on this bridge all week!",
+             win="Flying AND Fighting — you never had a chance!",
+             lose="Knocked off the bridge by a rookie!"),
+        _npc("Jenna",   "Lass",        [("Oddish", 15), ("Bellsprout", 15)],
+             intro="Grass-types thrive near water — just like on this bridge!",
+             win="Grass beats Water — you're done!",
+             lose="My petals scattered in the breeze!"),
+        _npc("Chad",    "Jr. Trainer", [("Pidgeotto", 16), ("Rattata", 15)],
+             intro="Only the strong make it past the Nugget Bridge!",
+             win="Return to Cerulean and try again!",
+             lose="You got the better of me — the prize awaits!"),
+        _npc("Rocket Grunt", "Rocket Grunt",
+             [("Ekans", 16), ("Sandshrew", 16)],
+             intro="Excellent work, Trainer!  Now join Team Rocket — or face us!",
+             win="Heh.  Joining was the smart choice — too bad you refused.",
+             lose="You dare defy Team Rocket?!  I'll report this to the Boss!"),
+    ],
+    wild_encounters=[
+        ("Caterpie", 12, 17),
+        ("Weedle",   12, 17),
+        ("Metapod",  14, 18),
+        ("Kakuna",   14, 18),
+        ("Oddish",   13, 18),
+    ],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 15)],
+        "Good Rod":  [("Poliwag", 14, 20), ("Goldeen", 15, 20)],
+        "Super Rod": [("Poliwhirl", 25, 32), ("Seaking", 28, 36)],
+    },
+))
+
+# ── Route 25 (Cape / Bill's House) ────────────────────────────────────────────
+
+_loc(Location(
+    name="Route 25",
+    description=(
+        "A winding coastal path leading to Bill's cottage on Sea Cottage Cape.\n"
+        "Bill, the Pokémon Storage creator, accidentally fused with a Pokémon!\n"
+        "Help him — and earn the ticket to the S.S. Anne."
+    ),
+    story_events={
+        "BILL_RESCUED": (
+            "Bill: Ahh!  A Trainer!  I need your help.\n"
+            "I've merged with a Pokémon in a teleportation experiment.\n"
+            "Please — operate the machine and separate us!\n\n"
+            "Bill: Phew — I'm myself again!  As thanks, take this S.S. Ticket!\n"
+            "Board the S.S. Anne in Vermilion City for a Trainer-rich voyage!"
+        ),
+    },
+    trainers=[
+        _npc("Tammy",   "Jr. Trainer", [("Goldeen", 17), ("Poliwag", 16)],
+             intro="The view from this cape is beautiful — fight me or miss it!",
+             win="The cape belongs to those who can battle!",
+             lose="Swept away like the tide!"),
+        _npc("Lance",   "Jr. Trainer", [("Slowpoke", 18), ("Psyduck", 17)],
+             intro="Water and Psychic both live on this route!",
+             win="Calm as the ocean — and twice as deep!",
+             lose="My head hurts from this loss!"),
+    ],
+    wild_encounters=[
+        ("Caterpie",  12, 17),
+        ("Weedle",    12, 17),
+        ("Bellsprout",13, 18),
+        ("Oddish",    13, 18),
+    ],
+    fish_encounters={
+        "Old Rod":   [("Magikarp", 10, 15)],
+        "Good Rod":  [("Horsea", 15, 20), ("Tentacool", 14, 20)],
+        "Super Rod": [("Seadra", 28, 35), ("Staryu", 25, 32)],
+    },
 ))
 
 # ── Story-path order ──────────────────────────────────────────────────────────
 
 STORY_PATH: list[str] = [
     "Pallet Town",
+    "Route 22",
     "Route 1",
     "Viridian City",
     "Route 2",
@@ -985,13 +1233,18 @@ STORY_PATH: list[str] = [
     "Route 3",
     "Mt. Moon",
     "Route 4",
+    "Route 24",
+    "Route 25",
     "Cerulean City",
+    "Route 5",
     "Route 9",
     "Rock Tunnel",
+    "Route 8",
+    "Lavender Town",
     "Route 6",
     "Vermilion City",
-    "Lavender Town",
     "Route 11",
+    "Route 7",
     "Celadon City",
     "Route 13",
     "Cycling Road",

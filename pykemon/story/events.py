@@ -6,6 +6,8 @@ Kanto adventure.  All flags are plain strings so they can easily be serialised.
 """
 
 from __future__ import annotations
+import json
+import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -43,10 +45,12 @@ class StoryFlag:
     MT_MOON_ROCKET_DEFEATED  = "MT_MOON_ROCKET_DEFEATED"
     FOSSIL_CHOSEN            = "FOSSIL_CHOSEN"          # chosen fossil in Mt. Moon
     SS_ANNE_VISITED          = "SS_ANNE_VISITED"        # got HM01 Cut
+    BILL_RESCUED             = "BILL_RESCUED"           # Bill on Route 25, got S.S. Ticket
     POKEMON_TOWER_GHOST      = "POKEMON_TOWER_GHOST"    # ghost Marowak defeated
     GAME_CORNER_CLEARED      = "GAME_CORNER_CLEARED"    # Rocket at Game Corner gone
     SILPH_CO_CLEARED         = "SILPH_CO_CLEARED"       # Rocket HQ cleared
     SEAFOAM_VISITED          = "SEAFOAM_VISITED"        # Articuno optional fight
+    MOLTRES_ENCOUNTERED      = "MOLTRES_ENCOUNTERED"    # Moltres at Victory Road
     HALL_OF_FAME             = "HALL_OF_FAME"           # game complete
 
     # Optional areas
@@ -110,3 +114,104 @@ class GameState:
         money = self.player.money
         badges = self.badge_count()
         return f"  {name}  ₽{money:,}  Badges: {badges}/8  | {self.current_location}"
+
+    # ── Save / Load ───────────────────────────────────────────────────────────
+
+    def to_dict(self) -> dict:
+        """Serialise game state to a JSON-compatible dict."""
+        from ..core.pokemon import Pokemon
+        player = self.player
+
+        def _move_dict(m) -> dict:
+            return {"name": m.data.name, "pp": m.current_pp}
+
+        def _mon_dict(mon: "Pokemon") -> dict:
+            return {
+                "species":      mon.species,
+                "nickname":     mon.nickname,
+                "level":        mon.level,
+                "exp":          mon.exp,
+                "is_shiny":     mon.is_shiny,
+                "gender":       mon.gender,
+                "friendship":   mon.friendship,
+                "current_hp":   mon.current_hp,
+                "moves":        [_move_dict(m) for m in mon.moves],
+                "held_item":    mon.held_item,
+                "trainer_name": mon.trainer_name,
+                "ivs":          mon.ivs,
+                "evs":          mon.evs,
+            }
+
+        return {
+            "version": 1,
+            "player_name":      player.name,
+            "money":            player.money,
+            "badges":           player.badges,
+            "bag":              {k: v for k, v in player.bag.items.items()},
+            "party":            [_mon_dict(m) for m in player.party],
+            "pc_box":           [[_mon_dict(m) for m in box]
+                                 for box in (player.bag._pc_boxes
+                                             if hasattr(player.bag, "_pc_boxes") else [])],
+            "current_location": self.current_location,
+            "flags":            sorted(self.flags),
+            "seen_locations":   self.seen_locations,
+            "pokedex_seen":     sorted(player.pokedex.seen)   if player.pokedex else [],
+            "pokedex_caught":   sorted(player.pokedex.caught) if player.pokedex else [],
+        }
+
+    def save(self, filepath: str = "pykemon_save.json") -> None:
+        """Save game state to a JSON file."""
+        data = self.to_dict()
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    @classmethod
+    def load(cls, filepath: str = "pykemon_save.json") -> "GameState":
+        """Load a previously saved game state from a JSON file."""
+        from ..core.trainer import Trainer
+        from ..core.pokemon import create_pokemon
+        from ..data.moves import MOVES
+
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Save file not found: {filepath}")
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        player = Trainer(
+            name=data["player_name"],
+            money=data["money"],
+            badges=data.get("badges", []),
+            is_player=True,
+        )
+        # Restore bag
+        for item_name, qty in data.get("bag", {}).items():
+            player.bag.add_item(item_name, qty)
+        # Restore party
+        for md in data.get("party", []):
+            mon = create_pokemon(md["species"], md["level"], trainer_name=md["trainer_name"])
+            mon.nickname   = md.get("nickname", mon.nickname)
+            mon.exp        = md.get("exp", mon.exp)
+            mon.is_shiny   = md.get("is_shiny", False)
+            mon.gender     = md.get("gender", mon.gender)
+            mon.friendship = md.get("friendship", mon.friendship)
+            mon.current_hp = md.get("current_hp", mon.max_hp)
+            mon.ivs        = md.get("ivs", mon.ivs)
+            mon.evs        = md.get("evs", mon.evs)
+            if md.get("held_item"):
+                mon.held_item = md["held_item"]
+            # Restore moves with saved PP
+            saved_moves = {m["name"]: m["pp"] for m in md.get("moves", [])}
+            for mv in mon.moves:
+                if mv.data.name in saved_moves:
+                    mv.current_pp = saved_moves[mv.data.name]
+            player.party.append(mon)
+        # Restore Pokédex
+        if player.pokedex:
+            player.pokedex.seen   = set(data.get("pokedex_seen",   []))
+            player.pokedex.caught = set(data.get("pokedex_caught", []))
+
+        gs = cls(player, starting_location=data.get("current_location", "Pallet Town"))
+        gs.flags          = set(data.get("flags", []))
+        gs.seen_locations = data.get("seen_locations", [])
+        return gs

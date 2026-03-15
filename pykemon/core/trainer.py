@@ -35,6 +35,7 @@ TRAINER_CLASSES = {
     "Swimmer":       TrainerClass("Swimmer", "Swimmer", 1.2),
     "Fisher":        TrainerClass("Fisher", "Fisher", 1.1),
     "Channeler":     TrainerClass("Channeler", "Channeler", 1.3),
+    "Bird Keeper":   TrainerClass("Bird Keeper", "Bird Keeper", 1.2),
     "Cooltrainer":   TrainerClass("Cooltrainer", "Cool Trainer", 2.0),
     "Rocket Grunt":  TrainerClass("Team Rocket Grunt", "Grunt", 1.5),
     "Rocket Boss":   TrainerClass("Team Rocket Boss", "Boss", 3.5),
