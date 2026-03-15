@@ -1119,11 +1119,6 @@ _loc(Location(
              intro="I'm training to be the best — starting here!",
              win="Beat me?  Just a warm-up!",
              lose="I'll train harder tonight!"),
-        _npc("Gary",    "Rival",       [("Eevee", 9), ("Pidgey", 8)],
-             intro="Gary: Hey {player}!  Out for a stroll?\n"
-                   "Well you can't pass without battling me first!",
-             win="Gary: Ha!  You need a LOT more practice, {player}.",
-             lose="Gary: What?!  No way… I'll get you next time!"),
     ],
     wild_encounters=[
         ("Spearow", 2, 5),

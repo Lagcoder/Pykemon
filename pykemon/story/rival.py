@@ -3,7 +3,8 @@ pykemon/story/rival.py
 
 The player's rival, Gary Oak.  His team grows at every encounter and is
 chosen to be slightly ahead of or equal to the player's progression.
-He always picks the starter that has a type advantage over the player's.
+He always picks the starter that is weak against the player's starter
+(giving the player a type advantage from the very first battle).
 """
 
 from __future__ import annotations
@@ -15,11 +16,12 @@ if TYPE_CHECKING:
 RIVAL_NAME = "Gary"
 
 
-# Maps player starter → rival's starter (type-advantage counter)
+# Maps player starter → rival's starter (type is weak AGAINST the player's starter).
+# e.g. player picks Bulbasaur (Grass) → rival gets Squirtle (Water, weak to Grass).
 _COUNTER_STARTER: dict[str, str] = {
-    "Bulbasaur":  "Charmander",   # Fire beats Grass
-    "Charmander": "Squirtle",     # Water beats Fire
-    "Squirtle":   "Bulbasaur",    # Grass beats Water
+    "Bulbasaur":  "Squirtle",    # Water is weak to Grass
+    "Charmander": "Bulbasaur",   # Grass is weak to Fire
+    "Squirtle":   "Charmander",  # Fire is weak to Water
 }
 
 # Teams at each encounter.  The last entry of each list is always the rival's

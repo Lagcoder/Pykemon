@@ -911,7 +911,7 @@ class TestStorySystem:
         assert gs2.has_flag(StoryFlag.OAK_PARCEL_DELIVERED)
         assert gs2.current_location == "Cerulean City"
         assert len(gs2.player.party) == 1
-        assert gs2.player.party[0].species == "Pikachu"
+        assert gs2.player.party[0].species.name == "Pikachu"
 
     def test_gamestate_load_missing_file(self, tmp_path):
         from pykemon.story.events import GameState
@@ -1069,4 +1069,4 @@ class TestBirdKeeperClass:
     def test_bird_keeper_payout(self):
         from pykemon.core.trainer import TRAINER_CLASSES
         tc = TRAINER_CLASSES["Bird Keeper"]
-        assert tc.payout_multiplier > 0
+        assert tc.reward_multiplier > 0

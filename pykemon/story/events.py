@@ -85,6 +85,9 @@ class GameState:
         self.flags: set[str] = set()
         self.rival: "Trainer | None" = None          # rebuilt at each encounter
         self.seen_locations: list[str] = []          # ordered visit history
+        # Name of the starter the player chose (e.g. "Bulbasaur").
+        # Used to give the rival the starter that is weak against the player's.
+        self.player_starter: str = ""
 
     # ── Flag helpers ─────────────────────────────────────────────────────────
 
@@ -123,21 +126,21 @@ class GameState:
         player = self.player
 
         def _move_dict(m) -> dict:
-            return {"name": m.data.name, "pp": m.current_pp}
+            return {"name": m.data.name, "pp": m.pp}
 
         def _mon_dict(mon: "Pokemon") -> dict:
             return {
-                "species":      mon.species,
+                "species":      mon.species.name,
                 "nickname":     mon.nickname,
                 "level":        mon.level,
-                "exp":          mon.exp,
+                "experience":   mon.experience,
                 "is_shiny":     mon.is_shiny,
                 "gender":       mon.gender,
                 "friendship":   mon.friendship,
                 "current_hp":   mon.current_hp,
                 "moves":        [_move_dict(m) for m in mon.moves],
                 "held_item":    mon.held_item,
-                "trainer_name": mon.trainer_name,
+                "trainer_name": mon.original_trainer,
                 "ivs":          mon.ivs,
                 "evs":          mon.evs,
             }
@@ -147,7 +150,7 @@ class GameState:
             "player_name":      player.name,
             "money":            player.money,
             "badges":           player.badges,
-            "bag":              {k: v for k, v in player.bag.items.items()},
+            "bag":              player.bag.all_items(),
             "party":            [_mon_dict(m) for m in player.party],
             "pc_box":           [[_mon_dict(m) for m in box]
                                  for box in (player.bag._pc_boxes
@@ -155,8 +158,9 @@ class GameState:
             "current_location": self.current_location,
             "flags":            sorted(self.flags),
             "seen_locations":   self.seen_locations,
-            "pokedex_seen":     sorted(player.pokedex.seen)   if player.pokedex else [],
-            "pokedex_caught":   sorted(player.pokedex.caught) if player.pokedex else [],
+            "player_starter":   self.player_starter,
+            "pokedex_seen":     sorted(player.pokedex._seen)   if player.pokedex else [],
+            "pokedex_caught":   sorted(player.pokedex._caught) if player.pokedex else [],
         }
 
     def save(self, filepath: str = "pykemon_save.json") -> None:
@@ -191,7 +195,7 @@ class GameState:
         for md in data.get("party", []):
             mon = create_pokemon(md["species"], md["level"], trainer_name=md["trainer_name"])
             mon.nickname   = md.get("nickname", mon.nickname)
-            mon.exp        = md.get("exp", mon.exp)
+            mon.experience = md.get("experience", mon.experience)
             mon.is_shiny   = md.get("is_shiny", False)
             mon.gender     = md.get("gender", mon.gender)
             mon.friendship = md.get("friendship", mon.friendship)
@@ -204,14 +208,15 @@ class GameState:
             saved_moves = {m["name"]: m["pp"] for m in md.get("moves", [])}
             for mv in mon.moves:
                 if mv.data.name in saved_moves:
-                    mv.current_pp = saved_moves[mv.data.name]
+                    mv.pp = saved_moves[mv.data.name]
             player.party.append(mon)
-        # Restore Pokédex
+        # Restore Pokédex (stores Pokémon numbers as ints)
         if player.pokedex:
-            player.pokedex.seen   = set(data.get("pokedex_seen",   []))
-            player.pokedex.caught = set(data.get("pokedex_caught", []))
+            player.pokedex._seen   = set(data.get("pokedex_seen",   []))
+            player.pokedex._caught = set(data.get("pokedex_caught", []))
 
         gs = cls(player, starting_location=data.get("current_location", "Pallet Town"))
         gs.flags          = set(data.get("flags", []))
         gs.seen_locations = data.get("seen_locations", [])
+        gs.player_starter = data.get("player_starter", "")
         return gs

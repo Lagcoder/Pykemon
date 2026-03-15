@@ -299,7 +299,11 @@ def npc_battle(gs: GameState, npc_spec, center: PokemonCenter) -> bool:
 
 def rival_battle(gs: GameState, encounter_index: int, center: PokemonCenter) -> bool:
     player = gs.player
-    starter_name = player.party[0].species.name if player.party else None
+    # Use the stored starter name so the rival always gets the counter regardless
+    # of how the party order has changed since the game began.
+    starter_name = gs.player_starter or (
+        player.party[0].species.name if player.party else None
+    )
     rival = build_rival(encounter_index, starter_name)
     say(f"\n{rival.dialogue_intro}", player.name)
     press_enter()
@@ -956,6 +960,7 @@ def main() -> None:
     player.bag.add_item("Poké Ball", 5)
     player.bag.add_item("Potion", 5)
     gs = GameState(player, starting_location="Pallet Town")
+    gs.player_starter = starter.species.name   # remember for rival counter-starter logic
     gs.set_flag(StoryFlag.RECEIVED_STARTER)
     center     = PokemonCenter("Pallet Town")
     mart       = PokeMart("Viridian City")
