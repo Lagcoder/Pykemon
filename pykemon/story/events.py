@@ -49,6 +49,11 @@ class StoryFlag:
     SEAFOAM_VISITED          = "SEAFOAM_VISITED"        # Articuno optional fight
     HALL_OF_FAME             = "HALL_OF_FAME"           # game complete
 
+    # Optional areas
+    POWER_PLANT_VISITED      = "POWER_PLANT_VISITED"    # Zapdos encounter
+    MANSION_VISITED          = "MANSION_VISITED"        # Pokémon Mansion lore
+    CERULEAN_CAVE_VISITED    = "CERULEAN_CAVE_VISITED"  # post-game Mewtwo
+
 
 BADGE_TO_FLAG: dict[str, str] = {
     "Boulder Badge": StoryFlag.BEAT_BROCK,

@@ -525,6 +525,35 @@ def _trigger_story_events(gs, loc, center, mart, gym_system):
             gs.set_flag(flag)
         elif flag == "BEAT_CHAMPION":
             gs.set_flag(flag)
+        elif flag == "POWER_PLANT_VISITED":
+            say(f"\n{narrative}", player.name)
+            press_enter()
+            zapdos = create_pokemon("Zapdos", 50, is_wild=True)
+            wild_t = Trainer("Wild", party=[zapdos])
+            result = run_battle_loop(Battle(player, wild_t, is_wild=True), player)
+            if result == BattleResult.CATCH:
+                print("  You caught the legendary ZAPDOS!")
+            gs.set_flag(StoryFlag.POWER_PLANT_VISITED)
+            gs.set_flag(flag)
+        elif flag == "MANSION_VISITED":
+            say(f"\n{narrative}", player.name)
+            press_enter()
+            gs.set_flag(StoryFlag.MANSION_VISITED)
+            gs.set_flag(flag)
+        elif flag == "CERULEAN_CAVE_VISITED":
+            if gs.has_flag(StoryFlag.HALL_OF_FAME):
+                say(f"\n  You enter Cerulean Cave — few trainers survive its depths.", player.name)
+                press_enter()
+                mewtwo = create_pokemon("Mewtwo", 70, is_wild=True)
+                wild_t = Trainer("Wild", party=[mewtwo])
+                result = run_battle_loop(Battle(player, wild_t, is_wild=True), player)
+                if result == BattleResult.CATCH:
+                    print("  You caught the legendary MEWTWO!")
+                gs.set_flag(StoryFlag.CERULEAN_CAVE_VISITED)
+                gs.set_flag(flag)
+            else:
+                print("  A guard blocks the cave.  'Only the Pokémon League Champion may enter!'")
+                press_enter()
         else:
             say(f"\n{narrative}", player.name)
             press_enter()

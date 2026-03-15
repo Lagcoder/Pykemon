@@ -3,7 +3,7 @@ Trainer class: player and NPC trainers, Gym Leaders, Elite Four, etc.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field, field
+from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from .bag import Bag
 from .pokedex import Pokedex
@@ -29,11 +29,20 @@ TRAINER_CLASSES = {
     "Hiker":         TrainerClass("Hiker", "Hiker", 1.2),
     "Jr. Trainer":   TrainerClass("Jr. Trainer", "Jr. Trainer", 1.2),
     "Scientist":     TrainerClass("Scientist", "Scientist", 1.5),
+    "Psychic":       TrainerClass("Psychic", "Psychic", 1.3),
+    "Juggler":       TrainerClass("Juggler", "Juggler", 1.3),
+    "Biker":         TrainerClass("Biker", "Biker", 1.2),
+    "Swimmer":       TrainerClass("Swimmer", "Swimmer", 1.2),
+    "Fisher":        TrainerClass("Fisher", "Fisher", 1.1),
+    "Channeler":     TrainerClass("Channeler", "Channeler", 1.3),
+    "Cooltrainer":   TrainerClass("Cooltrainer", "Cool Trainer", 2.0),
     "Rocket Grunt":  TrainerClass("Team Rocket Grunt", "Grunt", 1.5),
+    "Rocket Boss":   TrainerClass("Team Rocket Boss", "Boss", 3.5),
     "Gym Leader":    TrainerClass("Gym Leader", "Leader", 3.0),
     "Elite Four":    TrainerClass("Elite Four", "Elite Four", 4.0),
     "Champion":      TrainerClass("Champion", "Champion", 5.0),
     "Rival":         TrainerClass("Rival", "", 2.0),
+    "Wild":          TrainerClass("Wild", "", 0.0),
 }
 
 
@@ -403,19 +412,109 @@ def build_gym_trainers(gym: GymData) -> list[Trainer]:
     """Build the NPC trainers inside the gym (fought before the leader)."""
     from ..core.pokemon import create_pokemon
 
+    # Per-gym trainer specs: name, class, intro, win, lose per trainer slot
+    _GYM_TRAINER_META: dict[str, list[dict]] = {
+        "Brock": [
+            {"name": "Tanner",  "class": "Youngster",
+             "intro": "Nothing can break through my Rock-types!",
+             "win":   "Brock will take care of you!",
+             "lose":  "How… my Geodude is impenetrable!"},
+            {"name": "Jerry",   "class": "Hiker",
+             "intro": "These rocks have never crumbled before!",
+             "win":   "Leader Brock awaits you — and he's tougher!",
+             "lose":  "Impossible! My Onix was supposed to crush you!"},
+        ],
+        "Misty": [
+            {"name": "Diana",   "class": "Jr. Trainer",
+             "intro": "Misty's Pokémon flow like the tides — unbeatable!",
+             "win":   "Misty will wash you away!",
+             "lose":  "I splashed and I missed…"},
+        ],
+        "Lt. Surge": [
+            {"name": "Thomas",  "class": "Jr. Trainer",
+             "intro": "Electricity is the power of the future!",
+             "win":   "The Surge's lightning will shock you!",
+             "lose":  "Short-circuited again…"},
+            {"name": "Allen",   "class": "Jr. Trainer",
+             "intro": "You'll feel the voltage today, kid!",
+             "win":   "Lt. Surge is far stronger than me — watch out!",
+             "lose":  "Zapped… by a rookie?!"},
+        ],
+        "Erika": [
+            {"name": "Lori",    "class": "Jr. Trainer",
+             "intro": "The fragrance of Grass-types calms the soul — yours will be crushed!",
+             "win":   "Leader Erika has the most beautiful team in Kanto!",
+             "lose":  "My flowers… wilted!"},
+            {"name": "Kay",     "class": "Jr. Trainer",
+             "intro": "Nature's power is unstoppable!",
+             "win":   "Erika will make short work of you!",
+             "lose":  "You uprooted my strategy!"},
+            {"name": "Donna",   "class": "Jr. Trainer",
+             "intro": "Grass-type moves bloom with power!",
+             "win":   "Now face our leader — she's in full bloom!",
+             "lose":  "I've been weeded out…"},
+        ],
+        "Koga": [
+            {"name": "Chris",   "class": "Juggler",
+             "intro": "Poison flows through these walls — as it will through you!",
+             "win":   "Koga will make you suffer far more than I did!",
+             "lose":  "The antidote to your skill… does not exist."},
+            {"name": "Joe",     "class": "Juggler",
+             "intro": "You juggle your way into the gym but can you juggle defeat?",
+             "win":   "Koga is a master of the invisible wall — and the mind!",
+             "lose":  "Dropped the ball…"},
+        ],
+        "Sabrina": [
+            {"name": "Tyson",   "class": "Psychic",
+             "intro": "I have foreseen your loss.  It is inevitable.",
+             "win":   "Sabrina has powers far beyond my own!",
+             "lose":  "My prediction… was wrong?!"},
+            {"name": "Garth",   "class": "Psychic",
+             "intro": "Your thoughts betray your weakness — I can read them!",
+             "win":   "Sabrina will peer into your very soul!",
+             "lose":  "I… didn't see that coming."},
+        ],
+        "Blaine": [
+            {"name": "Liam",    "class": "Scientist",
+             "intro": "Fire is the answer to every Pokémon quiz!",
+             "win":   "Blaine's fire burns ten times hotter than mine!",
+             "lose":  "Extinguished by a challenger…  Embarrassing."},
+            {"name": "Ted",     "class": "Scientist",
+             "intro": "Blaine's quiz: what type beats Fire? You won't survive to answer!",
+             "win":   "Next question: can you beat Blaine?  I doubt it!",
+             "lose":  "I flunked the test of battle!"},
+        ],
+        "Giovanni": [
+            {"name": "Nate",    "class": "Cooltrainer",
+             "intro": "Giovanni's power comes from the earth itself!  You can't win!",
+             "win":   "The Boss is ten times stronger — you'll see!",
+             "lose":  "The ground crumbled beneath me…"},
+            {"name": "Ivan",    "class": "Cooltrainer",
+             "intro": "Team Rocket and Ground-types — a perfect combination!",
+             "win":   "Giovanni will bury you!",
+             "lose":  "I've been defeated by a child…  The Boss must never know."},
+            {"name": "Erik",    "class": "Cooltrainer",
+             "intro": "This is the end of the line, challenger!",
+             "win":   "Giovanni awaits — and he shows no mercy!",
+             "lose":  "I can't believe it… the Boss won't be pleased."},
+        ],
+    }
+
+    meta_list = _GYM_TRAINER_META.get(gym.leader_name, [])
     trainers = []
     for i, party_spec in enumerate(gym.gym_trainer_parties):
-        party = [create_pokemon(name, lvl, trainer_name=f"Gym Trainer")
+        party = [create_pokemon(name, lvl, trainer_name="Gym Trainer")
                  for name, lvl in party_spec]
+        meta = meta_list[i] if i < len(meta_list) else {}
         t = Trainer(
-            name=f"{gym.leader_name}'s Trainer {i + 1}",
-            trainer_class="Jr. Trainer",
+            name=meta.get("name", f"{gym.leader_name}'s Trainer {i + 1}"),
+            trainer_class=meta.get("class", "Jr. Trainer"),
             party=party,
             money=max(lvl for _, lvl in party_spec) * 80,
         )
-        t.dialogue_intro = f"You shall not pass to {gym.leader_name}!"
-        t.dialogue_win   = "I lost?! No way!"
-        t.dialogue_lose  = "Hah! That was nothing!"
+        t.dialogue_intro = meta.get("intro", f"You shall not pass to {gym.leader_name}!")
+        t.dialogue_win   = meta.get("win",   "I lost?! No way!")
+        t.dialogue_lose  = meta.get("lose",  "Hah! That was nothing!")
         trainers.append(t)
     return trainers
 

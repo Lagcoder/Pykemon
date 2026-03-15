@@ -26,6 +26,9 @@ class LocationService(Enum):
     POKEMON_TOWER  = "Pokémon Tower"
     SEAFOAM_CAVE   = "Seafoam Islands Cave"
     VICTORY_ROAD_CAVE = "Victory Road"
+    POWER_PLANT    = "Power Plant"
+    POKEMON_MANSION = "Pokémon Mansion"
+    CERULEAN_CAVE  = "Cerulean Cave"
 
 
 @dataclass
@@ -659,6 +662,317 @@ _loc(Location(
 ))
 
 
+# ── Route 4 ──────────────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Route 4",
+    description=(
+        "The short route east of Mt. Moon leading into Cerulean City.\n"
+        "Trainers gather here after conquering the cave.\n"
+        "The occasional wild Magikarp leaps from the pond."
+    ),
+    trainers=[
+        _npc("Evan",   "Jr. Trainer", [("Spearow", 14), ("Rattata", 14)],
+             intro="Fresh out of Mt. Moon — and ready to win!",
+             win="Go challenge Misty!  She's tough!",
+             lose="Beaten before I even reached Cerulean…"),
+        _npc("Sandra", "Jr. Trainer", [("Clefairy", 15), ("Jigglypuff", 15)],
+             intro="Normal-type Pokémon are stronger than people think!",
+             win="Cerulean Gym is right ahead — and Misty is fierce!",
+             lose="My Clefairy used Sing but it didn't work in time!"),
+        _npc("Pete",   "Hiker",       [("Geodude", 13), ("Geodude", 14), ("Machop", 13)],
+             intro="I've been hiking since before you were born, kid!",
+             win="Ha!  Your training has just begun!",
+             lose="Solid effort!  Keep it up on the road ahead."),
+    ],
+    wild_encounters=[
+        ("Spearow",  10, 16),
+        ("Rattata",  10, 15),
+        ("Ekans",    12, 16),
+        ("Magikarp", 12, 15),
+    ],
+))
+
+# ── Rock Tunnel ───────────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Rock Tunnel",
+    description=(
+        "A pitch-black cave connecting Route 9 to Lavender Town.\n"
+        "Without Flash, trainers stumble blindly through the dark.\n"
+        "Hikers and rock-type enthusiasts call this cave their training ground."
+    ),
+    trainers=[
+        _npc("Lorenzo",  "Hiker",       [("Machop", 22), ("Onix", 24)],
+             intro="You need Flash to navigate here — I know every inch!",
+             win="Stumble on, then!  Lavender Town awaits.",
+             lose="You found your way in the dark better than I did!"),
+        _npc("Grace",    "Jr. Trainer", [("Geodude", 23), ("Geodude", 23), ("Graveler", 24)],
+             intro="Rock-types are as solid as this mountain!",
+             win="You can't chip through my defences!",
+             lose="Cracked… like a geode."),
+        _npc("Ronald",   "Hiker",       [("Onix", 25), ("Onix", 25)],
+             intro="Two Onix!  Try and stop us!",
+             win="Hah!  Two heads are better than one!",
+             lose="Both my Onix fainted…  Unbelievable."),
+        _npc("Melissa",  "Jr. Trainer", [("Paras", 23), ("Parasect", 25)],
+             intro="My Parasect knows all about cave life!",
+             win="Parasect's spores will put you to sleep!",
+             lose="My spores failed to take hold…"),
+    ],
+    wild_encounters=[
+        ("Zubat",    15, 22),
+        ("Geodude",  15, 22),
+        ("Machop",   16, 22),
+        ("Onix",     17, 24),
+    ],
+))
+
+# ── Power Plant ───────────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Power Plant",
+    description=(
+        "An abandoned electricity-generating plant north of Cerulean City.\n"
+        "Electric Pokémon have taken over every room.\n"
+        "Somewhere in the deepest chamber, legend says a lightning bird lurks."
+    ),
+    story_events={
+        "POWER_PLANT_VISITED": (
+            "Sparks crackle.  Every circuit buzzes.\n"
+            "Deep inside the generator room, a bolt of light ROARS at you!\n"
+            "It's ZAPDOS — the legendary Electric bird!"
+        ),
+    },
+    trainers=[
+        _npc("Winston", "Scientist",  [("Magnemite", 30), ("Magneton", 33)],
+             intro="This plant's power now belongs to the Pokémon!",
+             win="The voltage here is off the charts!",
+             lose="Short-circuited by a challenger…"),
+        _npc("Frank",   "Scientist",  [("Voltorb", 31), ("Electrode", 35)],
+             intro="One wrong step and BOOM — Electrode!",
+             win="Ha!  You'll set one off eventually!",
+             lose="My Electrode… detonated too early."),
+    ],
+    wild_encounters=[
+        ("Magnemite", 22, 32),
+        ("Magneton",  25, 35),
+        ("Voltorb",   22, 32),
+        ("Electrode", 25, 36),
+        ("Electabuzz",28, 36),
+        ("Zapdos",    50, 50),
+    ],
+))
+
+# ── Pokémon Mansion ───────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Pokémon Mansion",
+    description=(
+        "A scorched, crumbling mansion on Cinnabar Island.\n"
+        "Once the research home of the scientist who created Mewtwo.\n"
+        "Journals describe a terrible experiment gone horribly wrong."
+    ),
+    story_events={
+        "MANSION_VISITED": (
+            "You find charred journals describing the creation of MEW TWO.\n"
+            "The entry reads: 'We have created the world's most powerful Pokémon.\n"
+            "But we cannot control it…  It has escaped to CERULEAN CAVE.'"
+        ),
+    },
+    trainers=[
+        _npc("Dr. Fuji",  "Scientist", [("Magmar", 38), ("Ditto", 35)],
+             intro="These ruins hold the secret to the most powerful Pokémon!",
+             win="Mewtwo's power dwarfs anything you have seen!",
+             lose="Even here… a trainer defeats me."),
+        _npc("Marcus",    "Scientist", [("Ponyta", 36), ("Growlithe", 38)],
+             intro="The mansion's fire Pokémon protect these secrets!",
+             win="Stay away from the journals!",
+             lose="The secrets burn through my defences!"),
+        _npc("Team R. Scientist", "Rocket Grunt",
+             [("Koffing", 38), ("Grimer", 37), ("Muk", 40)],
+             intro="Team Rocket still searches for Mewtwo's data!",
+             win="We will find Mewtwo and control it!",
+             lose="The data…  We must report this to the Boss."),
+    ],
+    wild_encounters=[
+        ("Growlithe", 30, 38),
+        ("Ponyta",    30, 38),
+        ("Grimer",    30, 38),
+        ("Koffing",   30, 38),
+        ("Magmar",    34, 40),
+        ("Ditto",     28, 36),
+    ],
+))
+
+# ── Cerulean Cave ─────────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Cerulean Cave",
+    description=(
+        "A forbidden cave north of Cerulean City — entry is restricted\n"
+        "until you become Pokémon League Champion.\n"
+        "The bio-engineered Pokémon MEWTWO dwells deep within."
+    ),
+    wild_encounters=[
+        ("Rhydon",    55, 65),
+        ("Golduck",   52, 60),
+        ("Parasect",  50, 58),
+        ("Ditto",     48, 55),
+        ("Mewtwo",    70, 70),
+    ],
+))
+
+# ── Route 9 / Route 10 ────────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Route 9",
+    description=(
+        "A winding path east of Cerulean City leading to Rock Tunnel.\n"
+        "Tough trainers patrol the cliffside edges.\n"
+        "The distant sound of the Power Plant's hum fills the air."
+    ),
+    trainers=[
+        _npc("Bruce",  "Jr. Trainer", [("Ekans", 20), ("Spearow", 22)],
+             intro="Nobody gets past my checkpoint!",
+             win="Keep heading east for the Rock Tunnel!",
+             lose="I let the tunnel's trainer down!"),
+        _npc("April",  "Lass",        [("Meowth", 21), ("Persian", 22)],
+             intro="My Persian will claw you to ribbons!",
+             win="Persian is too cool to lose!",
+             lose="Oh no — my favourite Pokémon lost!"),
+        _npc("Victor", "Camper",      [("Nidorino", 22), ("Nidorina", 22)],
+             intro="Nido-twins — double the trouble for you!",
+             win="Double defeat — for you!",
+             lose="Both my Nidos down?  Unbelievable!"),
+    ],
+    wild_encounters=[
+        ("Ekans",    18, 25),
+        ("Spearow",  18, 24),
+        ("Nidoran♂", 18, 24),
+        ("Nidoran♀", 18, 24),
+    ],
+))
+
+# ── Route 11 / Route 12 ───────────────────────────────────────────────────────
+
+_loc(Location(
+    name="Route 11",
+    description=(
+        "A long flat road stretching east of Vermilion City.\n"
+        "Trainers on the lookout for trading partners roam here.\n"
+        "Drowzee are oddly common — keep your wits sharp."
+    ),
+    trainers=[
+        _npc("Ollie",  "Youngster",  [("Drowzee", 21), ("Hypno", 22)],
+             intro="Drowzee put me to sleep — but not in battle!",
+             win="Hypno will hypnotise you!",
+             lose="I've been put to sleep by my own team!"),
+        _npc("Brenda", "Lass",       [("Pidgey", 20), ("Pidgeotto", 22)],
+             intro="My birds will fly circles around your team!",
+             win="Pidgeot incoming — next time!",
+             lose="Grounded by a rookie!"),
+        _npc("Ivan",   "Jr. Trainer",[("Ekans", 22), ("Arbok", 24)],
+             intro="The poison of Arbok will paralyse your spirit!",
+             win="Run while you can!",
+             lose="My Arbok's Wrap couldn't hold you!"),
+    ],
+    wild_encounters=[
+        ("Spearow",  15, 22),
+        ("Ekans",    15, 22),
+        ("Drowzee",  17, 24),
+        ("Rattata",  15, 21),
+    ],
+))
+
+# ── Route 13 / Route 14 / Route 15 ───────────────────────────────────────────
+
+_loc(Location(
+    name="Route 13",
+    description=(
+        "A narrow path woven between tall hedges south of Lavender Town.\n"
+        "Bird-keeper trainers line every hedge gap.\n"
+        "Scyther can sometimes be spotted cutting through the brush."
+    ),
+    trainers=[
+        _npc("Frank",  "Bird Keeper", [("Pidgeotto", 26), ("Fearow", 27)],
+             intro="My birds own the sky above this route!",
+             win="You're grounded, rookie!",
+             lose="Brought down to earth…"),
+        _npc("Ally",   "Lass",        [("Venonat", 27), ("Venomoth", 28)],
+             intro="Night or day, Venomoth's powder will blind you!",
+             win="You can't see what you can't dodge!",
+             lose="My powder scattered in the wind!"),
+        _npc("Dale",   "Jr. Trainer", [("Scyther", 28)],
+             intro="Scyther slices through any obstacle!",
+             win="Scyther's blades are too fast to dodge!",
+             lose="Cut down by a stronger trainer!"),
+    ],
+    wild_encounters=[
+        ("Pidgey",   22, 28),
+        ("Venonat",  22, 28),
+        ("Scyther",  25, 30),
+        ("Ditto",    24, 28),
+    ],
+))
+
+# ── Route 16 / Route 17 (Cycling Road) ───────────────────────────────────────
+
+_loc(Location(
+    name="Cycling Road",
+    description=(
+        "The famous downhill route between Celadon City and Fuchsia City.\n"
+        "Bikers race down the long slope at breakneck speed.\n"
+        "You need a Bicycle to ride here — or a fast Pokémon!"
+    ),
+    trainers=[
+        _npc("Rex",    "Biker",  [("Weezing", 30), ("Koffing", 29)],
+             intro="Bikers rule this road!  Out of my way!",
+             win="VROOOOM!  See ya!",
+             lose="My engine stalled!"),
+        _npc("Marco",  "Biker",  [("Ponyta", 31), ("Rapidash", 33)],
+             intro="My Rapidash is faster than any bicycle!",
+             win="No one outraces me!",
+             lose="Got lapped on my own road!"),
+        _npc("Yolanda","Biker",  [("Grimer", 30), ("Muk", 32)],
+             intro="My Muk will slow you down to a crawl!",
+             win="Sludge!  Sludge everywhere!",
+             lose="Even my Muk got wiped clean!"),
+    ],
+    wild_encounters=[
+        ("Spearow",  25, 30),
+        ("Rattata",  24, 29),
+        ("Doduo",    25, 31),
+    ],
+))
+
+# ── Route 18 / Route 19 (Sea Routes) ─────────────────────────────────────────
+
+_loc(Location(
+    name="Sea Route 19",
+    description=(
+        "Open ocean waters stretching south of Fuchsia City.\n"
+        "Swimmers and divers patrol the waves on their Pokémon.\n"
+        "Tentacool swarm the surface — bring Repels!"
+    ),
+    trainers=[
+        _npc("Carol",  "Swimmer", [("Tentacool", 30), ("Staryu", 31)],
+             intro="The sea belongs to Water-type trainers!",
+             win="Sink or swim, rookie!",
+             lose="Wiped out by the current!"),
+        _npc("Derek",  "Swimmer", [("Goldeen", 31), ("Seaking", 33)],
+             intro="My Seaking will gore you!",
+             win="Horn Drill — coming for you!",
+             lose="My Seaking floundered!"),
+    ],
+    wild_encounters=[
+        ("Tentacool",  25, 35),
+        ("Tentacruel", 30, 38),
+        ("Horsea",     25, 32),
+        ("Seadra",     30, 38),
+    ],
+))
+
 # ── Story-path order ──────────────────────────────────────────────────────────
 
 STORY_PATH: list[str] = [
@@ -670,14 +984,22 @@ STORY_PATH: list[str] = [
     "Pewter City",
     "Route 3",
     "Mt. Moon",
+    "Route 4",
     "Cerulean City",
+    "Route 9",
+    "Rock Tunnel",
     "Route 6",
     "Vermilion City",
     "Lavender Town",
+    "Route 11",
     "Celadon City",
+    "Route 13",
+    "Cycling Road",
     "Fuchsia City",
     "Saffron City",
+    "Sea Route 19",
     "Cinnabar Island",
+    "Pokémon Mansion",
     "Viridian City (Return)",
     "Victory Road",
     "Indigo Plateau",
