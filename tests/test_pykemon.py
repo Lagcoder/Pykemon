@@ -403,8 +403,21 @@ class TestBattle:
         p = Trainer("P", party=[create_pokemon("Rapidash", 40, trainer_name="P")])
         o = Trainer("O", party=[create_pokemon("Raticate", 30, is_wild=True)])
         b = Battle(p, o, is_wild=True)
+        # run_turn() increments self.turn before checking flee chance.
+        # Set to 11 so run_turn increments it to 12, giving chance = 1.0
+        # (−0.1 + 0.1 × (12−1) = 1.0) — guaranteed escape.
+        b.turn = 11
         msgs = b.run_turn("run")
         assert b.result == BattleResult.RUN
+
+    def test_run_action_fails_on_turn_1(self):
+        p = Trainer("P", party=[create_pokemon("Rapidash", 40, trainer_name="P")])
+        o = Trainer("O", party=[create_pokemon("Raticate", 30, is_wild=True)])
+        b = Battle(p, o, is_wild=True)
+        # Turn 1: chance = -0.1, always fails
+        msgs = b.run_turn("run")
+        assert b.result is None
+        assert any("escape" in m.lower() or "can't" in m.lower() for m in msgs)
 
     def test_battle_result_win_on_ko(self):
         p_mon = create_pokemon("Mewtwo", 100, trainer_name="P")

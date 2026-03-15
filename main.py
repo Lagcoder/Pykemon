@@ -9,6 +9,7 @@ Usage:
 
 from __future__ import annotations
 import sys
+import time
 import random
 from typing import Optional
 
@@ -40,6 +41,10 @@ def prompt(msg: str = "> ") -> str:
 
 def press_enter(msg: str = "Press ENTER to continue...") -> None:
     prompt(msg)
+
+def pause(seconds: float = 0.6) -> None:
+    """Short automatic delay so the player can read messages without pressing ENTER."""
+    time.sleep(seconds)
 
 def print_divider(char: str = "─", width: int = 50) -> None:
     print(char * width)
@@ -174,6 +179,7 @@ def run_battle_loop(battle: Battle, player: Trainer) -> str:
         print(f"  {prefix}{battle.opponent.name} wants to battle!")
         print(f"  {battle.opponent.name} sent out {opp.nickname}!  (Lv.{opp.level})")
     print_divider("═")
+    pause(0.8)
     if player.pokedex:
         player.pokedex.register_seen(opp)
     while battle.result is None:
@@ -182,6 +188,7 @@ def run_battle_loop(battle: Battle, player: Trainer) -> str:
         for msg in msgs:
             if msg:
                 print(f"  {msg}")
+                pause(0.4)
         print()
         if battle.player_pokemon.fainted and player.has_usable_pokemon():
             if battle.result is None:
@@ -192,6 +199,7 @@ def run_battle_loop(battle: Battle, player: Trainer) -> str:
     if result == BattleResult.WIN:
         print("  You won the battle!")
         if not battle.is_wild and battle.opponent.dialogue_win:
+            pause(0.5)
             say(f"  {battle.opponent.name}: {battle.opponent.dialogue_win}", player.name)
     elif result == BattleResult.LOSE:
         print("  You lost…")
@@ -199,6 +207,7 @@ def run_battle_loop(battle: Battle, player: Trainer) -> str:
         print("  You got away safely!")
     elif result == BattleResult.CATCH:
         print(f"  Caught {battle.opponent_pokemon.nickname}!")
+    pause(0.6)
     press_enter()
     return result
 
@@ -213,11 +222,13 @@ def handle_evolution(mon: Pokemon, player: Trainer) -> None:
     print()
     print_divider("✦")
     print(f"  What? {mon.nickname} is evolving!")
+    pause(0.8)
     if prompt("  Press ENTER to evolve, or type 'cancel': ").lower() == "cancel":
         print(f"  {mon.nickname} stopped evolving!")
         return
     evolve(mon, cond)
     print(f"  {old_name} evolved into {mon.species.name}!")
+    pause(0.8)
     if player.pokedex:
         player.pokedex.register_caught(mon)
     press_enter()
@@ -877,28 +888,38 @@ def prologue():
         "Professor Oak: Hello there!\n"
         "Welcome to the world of POKÉMON!\n"
         "My name is Oak — people call me the Pokémon Professor.\n"
-        "\nThis world is inhabited by creatures called POKÉMON!\n"
+    )
+    pause(1.0)
+    print(
+        "This world is inhabited by creatures called POKÉMON!\n"
         "For some people, POKÉMON are pets.  Others use them for fights.\n"
         "Myself… I study POKÉMON as a profession.\n"
-        "\nYour very own Pokémon adventure is about to unfold.\n"
+    )
+    pause(1.0)
+    print(
+        "Your very own Pokémon adventure is about to unfold.\n"
         "A world of dreams and adventures with POKÉMON awaits!  Let's go!\n"
     )
+    pause(0.8)
     name = prompt("What is your name, Trainer? ").strip() or "Red"
     print(f"\nProfessor Oak: So your name is {name}!\n")
+    pause(0.6)
     press_enter()
     starters = ["Bulbasaur", "Charmander", "Squirtle"]
     print("Professor Oak: These three Pokémon are all I have left today.\n")
     for i, sname in enumerate(starters, 1):
         sp = SPECIES[sname]
         types_str = "/".join(t.value for t in sp.types)
-        print(f"  {i}. {sname:<12} [{types_str}]  —  {sp.pokedex_entry[:60]}")
-    print()
+        print(f"  {i}. {sname:<12} [{types_str}]")
+        print(f"     {sp.pokedex_entry}")
+        print()
     while True:
         raw = prompt("Choose your starter (1/2/3): ")
         if raw.isdigit() and 1 <= int(raw) <= 3:
             chosen = starters[int(raw) - 1]
             mon = create_pokemon(chosen, 5, trainer_name=name)
             print(f"\n  {name} received {chosen}!")
+            pause(0.8)
             press_enter()
             return name, mon
         print("  Please enter 1, 2, or 3.")
