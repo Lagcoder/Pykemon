@@ -44,7 +44,7 @@ def press_enter(msg: str = "Press ENTER to continue...") -> None:
 
 def pause(seconds: float = 0.6) -> None:
     """Short automatic delay so the player can read messages without pressing ENTER."""
-    time.sleep(seconds * 2)
+    time.sleep(seconds * 3)
 
 def print_divider(char: str = "─", width: int = 50) -> None:
     print(char * width)
